@@ -754,3 +754,24 @@ func (w *window) view() *glfw.Window {
 	}
 	return w.viewport
 }
+
+func (w *window) Iconify() {
+	runOnMain(func() {
+		win := w.view()
+		win.Iconify()
+	})
+}
+
+func (w *window) Restore() {
+	runOnMain(func() {
+		win := w.view()
+		win.Restore()
+	})
+}
+
+func (w *window) Focus() {
+	runOnMain(func() {
+		win := w.view()
+		win.Focus()
+	})
+}
