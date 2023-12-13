@@ -9,6 +9,7 @@ import (
 	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/driver/desktop"
 	"fyne.io/fyne/v2/internal/cache"
+	intWidget "fyne.io/fyne/v2/internal/widget"
 	"fyne.io/fyne/v2/test"
 	"fyne.io/fyne/v2/theme"
 )
@@ -31,6 +32,7 @@ func TestEntry_Cursor(t *testing.T) {
 func TestEntry_DoubleTapped(t *testing.T) {
 	entry := NewEntry()
 	entry.Wrapping = fyne.TextWrapOff
+	entry.Scroll = intWidget.ScrollNone
 	entry.SetText("The quick brown fox\njumped    over the lazy dog\n")
 	entry.Resize(entry.MinSize())
 
@@ -80,6 +82,7 @@ func TestEntry_DoubleTapped_AfterCol(t *testing.T) {
 func TestEntry_DragSelect(t *testing.T) {
 	entry := NewEntry()
 	entry.Wrapping = fyne.TextWrapOff
+	entry.Scroll = intWidget.ScrollNone
 	entry.SetText("The quick brown fox jumped\nover the lazy dog\nThe quick\nbrown fox\njumped over the lazy dog\n")
 	entry.Resize(entry.MinSize())
 
@@ -96,6 +99,32 @@ func TestEntry_DragSelect(t *testing.T) {
 		entry.Dragged(de)
 	}
 	me = &desktop.MouseEvent{PointEvent: *ev1, Button: desktop.MouseButtonPrimary}
+	entry.MouseUp(me)
+
+	assert.Equal(t, "r the laz", entry.SelectedText())
+}
+
+func TestEntry_DragSelectLargeStep(t *testing.T) {
+	entry := NewEntry()
+	entry.Wrapping = fyne.TextWrapOff
+	entry.Scroll = intWidget.ScrollNone
+	entry.SetText("The quick brown fox jumped\nover the lazy dog\nThe quick\nbrown fox\njumped over the lazy dog\n")
+	entry.Resize(entry.MinSize())
+
+	// get position after the letter 'e' on the second row
+	ev1 := getClickPosition("ove", 1)
+	// get position after the letter 'z' on the second row
+	ev2 := getClickPosition("over the laz", 1)
+
+	// mouse down and drag from 'r' to 'z'
+	me := &desktop.MouseEvent{PointEvent: *ev1, Button: desktop.MouseButtonPrimary}
+	entry.MouseDown(me)
+
+	delta := ev2.Position.Subtract(ev1.Position)
+	de := &fyne.DragEvent{PointEvent: *ev2, Dragged: fyne.NewDelta(delta.X, delta.Y)}
+	entry.Dragged(de)
+
+	me = &desktop.MouseEvent{PointEvent: *ev2, Button: desktop.MouseButtonPrimary}
 	entry.MouseUp(me)
 
 	assert.Equal(t, "r the laz", entry.SelectedText())
@@ -168,46 +197,50 @@ func TestEntry_ExpandSelectionForDoubleTap(t *testing.T) {
 	str := []rune(" fish 日本語日  \t  test 本日本 moose  \t")
 
 	// select invalid (before start)
-	start, end := getTextWhitespaceRegion(str, -1)
+	start, end := getTextWhitespaceRegion(str, -1, false)
 	assert.Equal(t, -1, start)
 	assert.Equal(t, -1, end)
 
 	// select whitespace at the end of text
-	start, end = getTextWhitespaceRegion(str, len(str))
+	start, end = getTextWhitespaceRegion(str, len(str), false)
 	assert.Equal(t, 29, start)
 	assert.Equal(t, 32, end)
-	start, end = getTextWhitespaceRegion(str, len(str)+100)
+	start, end = getTextWhitespaceRegion(str, len(str)+100, false)
 	assert.Equal(t, 29, start)
 	assert.Equal(t, 32, end)
 
 	// select the whitespace
-	start, end = getTextWhitespaceRegion(str, 0)
+	start, end = getTextWhitespaceRegion(str, 0, false)
 	assert.Equal(t, 0, start)
 	assert.Equal(t, 1, end)
+	// select the whitespace - grab adjacent words
+	start, end = getTextWhitespaceRegion(str, 0, true)
+	assert.Equal(t, 0, start)
+	assert.Equal(t, 5, end)
 
 	// select "fish"
-	start, end = getTextWhitespaceRegion(str, 1)
+	start, end = getTextWhitespaceRegion(str, 1, false)
 	assert.Equal(t, 1, start)
 	assert.Equal(t, 5, end)
-	start, end = getTextWhitespaceRegion(str, 4)
+	start, end = getTextWhitespaceRegion(str, 4, false)
 	assert.Equal(t, 1, start)
 	assert.Equal(t, 5, end)
 
 	// select "日本語日"
-	start, end = getTextWhitespaceRegion(str, 6)
+	start, end = getTextWhitespaceRegion(str, 7, false)
 	assert.Equal(t, 6, start)
 	assert.Equal(t, 10, end)
-	start, end = getTextWhitespaceRegion(str, 9)
+	start, end = getTextWhitespaceRegion(str, 9, false)
 	assert.Equal(t, 6, start)
 	assert.Equal(t, 10, end)
 
 	// select "  \t  "
-	start, end = getTextWhitespaceRegion(str, 10)
+	start, end = getTextWhitespaceRegion(str, 10, false)
 	assert.Equal(t, 10, start)
 	assert.Equal(t, 15, end)
 
 	// select "  \t"
-	start, end = getTextWhitespaceRegion(str, 30)
+	start, end = getTextWhitespaceRegion(str, 30, false)
 	assert.Equal(t, 29, start)
 	assert.Equal(t, len(str), end)
 }
@@ -215,7 +248,7 @@ func TestEntry_ExpandSelectionForDoubleTap(t *testing.T) {
 func TestEntry_ExpandSelectionWithWordSeparators(t *testing.T) {
 	// select "is_a"
 	str := []rune("This-is_a-test")
-	start, end := getTextWhitespaceRegion(str, 6)
+	start, end := getTextWhitespaceRegion(str, 6, false)
 	assert.Equal(t, 5, start)
 	assert.Equal(t, 9, end)
 }
@@ -331,6 +364,17 @@ func TestEntry_PasteFromClipboard_MultilineWrapping(t *testing.T) {
 	assert.Equal(t, "Testing entry paste\ncontent", entry.Text)
 	assert.Equal(t, 2, entry.CursorRow)
 	assert.Equal(t, 7, entry.CursorColumn)
+}
+
+func TestEntry_PlaceholderTextStyle(t *testing.T) {
+	e := NewEntry()
+	e.TextStyle = fyne.TextStyle{Bold: true, Italic: true}
+
+	w := test.NewWindow(e)
+	assert.Equal(t, e.TextStyle, e.placeholder.Segments[0].(*TextSegment).Style.TextStyle)
+
+	w.Canvas().Focus(e)
+	assert.Equal(t, e.TextStyle, e.placeholder.Segments[0].(*TextSegment).Style.TextStyle)
 }
 
 func TestEntry_Tab(t *testing.T) {

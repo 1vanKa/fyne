@@ -14,14 +14,14 @@
 				</widget>
 				<container pos="114,0" size="36x56">
 					<widget size="36x56" type="*widget.Button">
+						<rectangle radius="4" size="36x56"/>
 						<rectangle size="36x56"/>
-						<rectangle size="0x0"/>
 						<image fillMode="contain" pos="8,18" rsc="more-horizontal.svg" size="iconInlineSize" themed="default"/>
 					</widget>
 				</container>
 			</container>
 			<rectangle fillColor="shadow" pos="0,56" size="150x4"/>
-			<rectangle fillColor="primary" pos="0,56" size="110x4"/>
+			<rectangle fillColor="primary" pos="0,56" radius="4" size="110x4"/>
 			<circle fillColor="background" pos="0,60" size="150x90"/>
 		</widget>
 	</content>

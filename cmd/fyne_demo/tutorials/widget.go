@@ -8,6 +8,7 @@ import (
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/canvas"
+	"fyne.io/fyne/v2/cmd/fyne_demo/data"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/data/validation"
 	"fyne.io/fyne/v2/driver/mobile"
@@ -49,6 +50,7 @@ func makeAccordionTab(_ fyne.Window) fyne.CanvasObject {
 			Detail: widget.NewLabel("Three"),
 		},
 	)
+	ac.MultiOpen = true
 	ac.Append(widget.NewAccordionItem("D", &widget.Entry{Text: "Four"}))
 	return ac
 }
@@ -109,7 +111,7 @@ func makeCardTab(_ fyne.Window) fyne.CanvasObject {
 	card1 := widget.NewCard("Book a table", "Which time suits?",
 		widget.NewRadioGroup([]string{"6:30pm", "7:00pm", "7:45pm"}, func(string) {}))
 	card2 := widget.NewCard("With media", "No content, with image", nil)
-	card2.Image = canvas.NewImageFromResource(theme.FyneLogo())
+	card2.Image = canvas.NewImageFromResource(data.FyneLogo)
 	card3 := widget.NewCard("Title 3", "Another card", widget.NewLabel("Content"))
 	return container.NewGridWithColumns(2, container.NewVBox(card1, card3),
 		container.NewVBox(card2))
@@ -191,15 +193,16 @@ This styled row should also wrap as expected, but only *when required*.
 
 > An interesting quote here, most likely sharing some very interesting wisdom.`)
 	rich.Scroll = container.ScrollBoth
+	rich.Segments[2].(*widget.ImageSegment).Alignment = fyne.TextAlignTrailing
 
-	radioAlign := widget.NewRadioGroup([]string{"Text Alignment Leading", "Text Alignment Center", "Text Alignment Trailing"}, func(s string) {
+	radioAlign := widget.NewRadioGroup([]string{"Leading", "Center", "Trailing"}, func(s string) {
 		var align fyne.TextAlign
 		switch s {
-		case "Text Alignment Leading":
+		case "Leading":
 			align = fyne.TextAlignLeading
-		case "Text Alignment Center":
+		case "Center":
 			align = fyne.TextAlignCenter
-		case "Text Alignment Trailing":
+		case "Trailing":
 			align = fyne.TextAlignTrailing
 		}
 
@@ -218,24 +221,28 @@ This styled row should also wrap as expected, but only *when required*.
 		hyperlink.Refresh()
 		rich.Refresh()
 	})
-	radioAlign.SetSelected("Text Alignment Leading")
+	radioAlign.Horizontal = true
+	radioAlign.SetSelected("Leading")
 
-	radioWrap := widget.NewRadioGroup([]string{"Text Wrapping Off", "Text Wrapping Truncate", "Text Wrapping Break", "Text Wrapping Word"}, func(s string) {
+	radioWrap := widget.NewRadioGroup([]string{"Off", "Scroll", "Break", "Word"}, func(s string) {
 		var wrap fyne.TextWrap
+		scroll := container.ScrollBoth
 		switch s {
-		case "Text Wrapping Off":
+		case "Off":
 			wrap = fyne.TextWrapOff
-		case "Text Wrapping Truncate":
-			wrap = fyne.TextTruncate
-		case "Text Wrapping Break":
+			scroll = container.ScrollNone
+		case "Scroll":
+			wrap = fyne.TextWrapOff
+		case "Break":
 			wrap = fyne.TextWrapBreak
-		case "Text Wrapping Word":
+		case "Word":
 			wrap = fyne.TextWrapWord
 		}
 
 		label.Wrapping = wrap
 		hyperlink.Wrapping = wrap
 		entryLoremIpsum.Wrapping = wrap
+		entryLoremIpsum.Scroll = scroll
 		rich.Wrapping = wrap
 
 		label.Refresh()
@@ -243,14 +250,36 @@ This styled row should also wrap as expected, but only *when required*.
 		entryLoremIpsum.Refresh()
 		rich.Refresh()
 	})
-	radioWrap.SetSelected("Text Wrapping Word")
+	radioWrap.Horizontal = true
+	radioWrap.SetSelected("Word")
+
+	radioTrunc := widget.NewRadioGroup([]string{"Off", "Clip", "Ellipsis"}, func(s string) {
+		var trunc fyne.TextTruncation
+		switch s {
+		case "Off":
+			trunc = fyne.TextTruncateOff
+		case "Clip":
+			trunc = fyne.TextTruncateClip
+		case "Ellipsis":
+			trunc = fyne.TextTruncateEllipsis
+		}
+
+		label.Truncation = trunc
+		rich.Truncation = trunc
+
+		label.Refresh()
+		hyperlink.Refresh()
+		entryLoremIpsum.Refresh()
+		rich.Refresh()
+	})
+	radioTrunc.Horizontal = true
+	radioTrunc.SetSelected("Off")
 
 	fixed := container.NewVBox(
-		container.NewHBox(
-			radioAlign,
-			layout.NewSpacer(),
-			radioWrap,
-		),
+		widget.NewForm(
+			widget.NewFormItem("Text Alignment", radioAlign),
+			widget.NewFormItem("Wrapping", radioWrap),
+			widget.NewFormItem("Truncation", radioTrunc)),
 		label,
 		hyperlink,
 	)
@@ -280,7 +309,7 @@ func makeInputTab(_ fyne.Window) fyne.CanvasObject {
 		checkGroup,
 		radio,
 		disabledRadio,
-		widget.NewSlider(0, 100),
+		widget.NewSlider(0, 1000),
 	)
 }
 

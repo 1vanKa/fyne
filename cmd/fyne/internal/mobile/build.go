@@ -150,7 +150,7 @@ func runBuildImpl(cmd *command) (*packages.Package, error) {
 			}
 			return pkg, nil
 		}
-		target := 31
+		target := 33
 		if !buildRelease {
 			target = 29 // TODO once we have gomobile debug signing working for v2 android signs
 		}
@@ -273,10 +273,11 @@ var (
 )
 
 // RunNewBuild executes a new mobile build for the specified configuration
-func RunNewBuild(target, appID, icon, name, version string, build int, release, distribution bool, cert, profile string) error {
+func RunNewBuild(target, appID, icon, name, version string, build int, release, distribution bool, cert, profile string, tags []string) error {
 	buildTarget = target
 	buildBundleID = appID
 	buildRelease = distribution
+	buildTags = tags
 	if release {
 		buildLdflags = "-w"
 		buildTrimpath = true
